@@ -1,0 +1,49 @@
+{
+  "name": "mycoder-mcp",
+  "description": "MyCoder-MCP is a Model Context Protocol host that runs on the command line",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "clean": "pnpm -r clean",
+    "clean:all": "pnpm -r clean:all",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "test": "pnpm -r test",
+    "test:watch": "pnpm -r test:watch",
+    "test:coverage": "pnpm -r test:coverage"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cli",
+    "ai-tools"
+  ],
+  "author": "Ben Houston",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@types/node": "^22.13.10",
+    "@typescript-eslint/eslint-plugin": "^8.23.0",
+    "@typescript-eslint/parser": "^8.23.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9",
+    "eslint-import-resolver-typescript": "^3.8.3",
+    "eslint-plugin-import": "^2",
+    "eslint-plugin-prettier": "^5",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "prettier": "^3.5.1",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.23.0",
+    "vitest": "^3.0.8"
+  }
+}
