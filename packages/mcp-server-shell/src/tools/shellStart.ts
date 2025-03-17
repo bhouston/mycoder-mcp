@@ -8,7 +8,8 @@ import { ShellStatus, shellTracker } from './ShellTracker.js';
 
 import type { ProcessState } from './ShellTracker.js';
 
-export const parameterSchema = z.object({
+// Define the parameter schema for the shellStart tool
+export const shellStartParameters = {
   command: z.string().describe('The shell command to execute'),
   description: z.string().describe('The reason this shell command is being run (max 80 chars)'),
   timeout: z
@@ -29,224 +30,226 @@ export const parameterSchema = z.object({
     .describe(
       'Whether to show command output to the user, or keep the output clean (default: false)',
     ),
+};
+
+// Define the parameter schema using z.object
+export const parameterSchema = z.object(shellStartParameters);
+
+// Define the return schema for the shellStart tool
+const returnSchema = z.object({
+  instanceId: z.string().describe('The ID of the shell process'),
+  mode: z.enum(['sync', 'async']).describe('Whether the command ran in sync or async mode'),
+  stdout: z.string().optional().describe('The standard output of the command (for sync mode)'),
+  stderr: z.string().optional().describe('The standard error of the command (for sync mode)'),
+  exitCode: z.number().optional().describe('The exit code of the command (for sync mode)'),
+  error: z.string().optional().describe('Error message if the command failed to start'),
 });
 
-export const returnSchema = z.union([
-  z
-    .object({
-      mode: z.literal('sync'),
-      stdout: z.string(),
-      stderr: z.string(),
-      exitCode: z.number(),
-      error: z.string().optional(),
-    })
-    .describe('Synchronous execution results when command completes within timeout'),
-  z
-    .object({
-      mode: z.literal('async'),
-      instanceId: z.string(),
-      stdout: z.string(),
-      stderr: z.string(),
-      error: z.string().optional(),
-    })
-    .describe('Asynchronous execution results when command exceeds timeout'),
-]);
-
+// Type inference for parameters
 type Parameters = z.infer<typeof parameterSchema>;
 type ReturnType = z.infer<typeof returnSchema>;
 
-const DEFAULT_TIMEOUT = 1000 * 10; // 10 seconds
-
-export const shellStartExecute = async ({
-  command,
-  timeout = DEFAULT_TIMEOUT,
-  showStdIn = false,
-  showStdout = false,
-}: Parameters): Promise<{ content: { type: 'text'; text: string }[] }> => {
-  console.error(`Starting shell command: ${command}`);
-
-  if (showStdIn) {
-    console.error(`Command input: ${command}`);
-  }
-
-  try {
-    const result = await executeShellCommand(command, {
-      timeout,
-      showStdIn,
-      showStdout,
-    });
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result),
-        },
-      ],
-    };
-  } catch (error) {
-    console.error(`Error executing shell command: ${errorToString(error)}`);
-
-    // Return error result
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            mode: 'sync',
-            stdout: '',
-            stderr: '',
-            exitCode: 1,
-            error: errorToString(error),
-          }),
-        },
-      ],
-    };
-  }
+// Define the content response type to match SDK expectations
+type ContentResponse = {
+  content: {
+    type: 'text';
+    text: string;
+  }[];
+  isError?: boolean;
 };
 
-async function executeShellCommand(
-  command: string,
-  options: {
-    timeout: number;
-    showStdIn: boolean;
-    showStdout: boolean;
-  },
-): Promise<ReturnType> {
-  return new Promise((resolve) => {
-    try {
-      // Generate a unique ID for this process
-      const instanceId = uuidv4();
+// Helper function to build consistent responses
+const buildContentResponse = (result: ReturnType | { error: string }): ContentResponse => {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(result),
+      },
+    ],
+    ...('error' in result && !('mode' in result) && { isError: true }),
+  };
+};
 
-      // Register this shell process with the shell tracker
-      shellTracker.registerShell(command);
+// Maximum buffer size for sync mode
+const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
 
-      let hasResolved = false;
+/**
+ * Execute a shell command
+ */
+export async function shellStartExecute(
+  parameters: Parameters,
+  extra: any,
+): Promise<ContentResponse> {
+  const { command, timeout = 10000, showStdIn = false, showStdout = false } = parameters;
+  const logger = extra.logger || console;
 
-      // Use shell option instead of explicit shell path to avoid platform-specific issues
-      const process = spawn(command, [], {
-        shell: true,
-        cwd: process.cwd(),
-      });
+  try {
+    logger.verbose(`Starting shell command: ${command}`);
 
-      const processState: ProcessState = {
-        command,
-        process,
-        stdout: [],
-        stderr: [],
-        state: { completed: false, signaled: false, exitCode: null },
-        showStdIn: options.showStdIn,
-        showStdout: options.showStdout,
-      };
+    const instanceId = uuidv4();
+    let stdout = '';
+    let stderr = '';
+    let processState: ProcessState;
 
-      // Initialize process state
-      shellTracker.processStates.set(instanceId, processState);
+    // Try to run in sync mode first with a timeout
+    const syncPromise = new Promise<{
+      mode: 'sync';
+      stdout: string;
+      stderr: string;
+      exitCode: number;
+    }>((resolve, reject) => {
+      try {
+        // Start the process
+        const childProcess = spawn(command, {
+          shell: true,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
 
-      // Handle process events
-      if (process.stdout)
-        process.stdout.on('data', (data) => {
-          const output = data.toString();
-          processState.stdout.push(output);
-          if (processState.showStdout) {
-            console.error(`[${instanceId}] stdout: ${output.trim()}`);
+        let stdoutBuffer = Buffer.alloc(0);
+        let stderrBuffer = Buffer.alloc(0);
+        let bufferOverflow = false;
+
+        // Handle stdout
+        childProcess.stdout?.on('data', (data) => {
+          if (showStdout) {
+            process.stdout.write(data);
+          }
+          
+          if (stdoutBuffer.length + data.length <= MAX_BUFFER_SIZE) {
+            stdoutBuffer = Buffer.concat([stdoutBuffer, data]);
+          } else {
+            bufferOverflow = true;
           }
         });
 
-      if (process.stderr)
-        process.stderr.on('data', (data) => {
-          const output = data.toString();
-          processState.stderr.push(output);
-          if (processState.showStdout) {
-            console.error(`[${instanceId}] stderr: ${output.trim()}`);
+        // Handle stderr
+        childProcess.stderr?.on('data', (data) => {
+          if (showStdout) {
+            process.stderr.write(data);
+          }
+          
+          if (stderrBuffer.length + data.length <= MAX_BUFFER_SIZE) {
+            stderrBuffer = Buffer.concat([stderrBuffer, data]);
+          } else {
+            bufferOverflow = true;
           }
         });
 
-      process.on('error', (error) => {
-        console.error(`[${instanceId}] Process error: ${error.message}`);
-        processState.state.completed = true;
-
-        // Update shell tracker with error status
-        shellTracker.updateShellStatus(instanceId, ShellStatus.ERROR, {
-          error: error.message,
+        // Handle errors
+        childProcess.on('error', (error) => {
+          reject(error);
         });
 
-        if (!hasResolved) {
-          hasResolved = true;
-          resolve({
-            mode: 'async',
-            instanceId,
-            stdout: processState.stdout.join('').trim(),
-            stderr: processState.stderr.join('').trim(),
-            error: error.message,
-          });
-        }
-      });
+        // Handle process exit
+        childProcess.on('close', (code, signal) => {
+          if (bufferOverflow) {
+            reject(new Error('Command output exceeded maximum buffer size, switching to async mode'));
+            return;
+          }
 
-      process.on('exit', (code, signal) => {
-        console.error(`[${instanceId}] Process exited with code ${code} and signal ${signal}`);
+          stdout = stdoutBuffer.toString();
+          stderr = stderrBuffer.toString();
 
-        processState.state.completed = true;
-        processState.state.signaled = signal !== null;
-        processState.state.exitCode = code;
-
-        // Update shell tracker with completed status
-        const status = code === 0 ? ShellStatus.COMPLETED : ShellStatus.ERROR;
-        shellTracker.updateShellStatus(instanceId, status, {
-          exitCode: code,
-          signaled: signal !== null,
+          if (code === 0 || code === null) {
+            resolve({
+              mode: 'sync',
+              stdout,
+              stderr,
+              exitCode: code || 0,
+            });
+          } else {
+            resolve({
+              mode: 'sync',
+              stdout,
+              stderr,
+              exitCode: code,
+            });
+          }
         });
 
-        // For test environment with timeout=0, we should still return sync results
-        // when the process completes quickly
-        if (!hasResolved) {
-          hasResolved = true;
-          // If we haven't resolved yet, this happened within the timeout
-          // so return sync results
-          resolve({
-            mode: 'sync',
-            stdout: processState.stdout.join('').trim(),
-            stderr: processState.stderr.join('').trim(),
-            exitCode: code ?? 1,
-            ...(code !== 0 && {
-              error: `Process exited with code ${code}${signal ? ` and signal ${signal}` : ''}`,
-            }),
-          });
-        }
-      });
+        // Store the process state
+        processState = {
+          process: childProcess,
+          command,
+          stdout: [],
+          stderr: [],
+          state: {
+            completed: false,
+            signaled: false,
+            exitCode: undefined
+          },
+          showStdIn,
+          showStdout,
+        };
 
-      // For test environment, when timeout is explicitly set to 0, we want to force async mode
-      if (options.timeout === 0) {
-        // Force async mode immediately
-        hasResolved = true;
+        // Register with the tracker
+        shellTracker.registerShell(command);
+        shellTracker.processStates.set(instanceId, processState);
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    // Set up a timeout to switch to async mode if needed
+    const timeoutPromise = new Promise<{
+      mode: 'async';
+      instanceId: string;
+    }>((resolve) => {
+      setTimeout(() => {
         resolve({
           mode: 'async',
           instanceId,
-          stdout: processState.stdout.join('').trim(),
-          stderr: processState.stderr.join('').trim(),
+        });
+      }, timeout);
+    });
+
+    // Race between sync completion and timeout
+    try {
+      const result = await Promise.race([syncPromise, timeoutPromise]);
+
+      if (result.mode === 'sync') {
+        // Command completed in sync mode
+        shellTracker.updateShellStatus(
+          instanceId,
+          result.exitCode === 0 ? ShellStatus.COMPLETED : ShellStatus.ERROR,
+          {
+            exitCode: result.exitCode,
+            stdout: result.stdout,
+            stderr: result.stderr,
+          },
+        );
+
+        return buildContentResponse({
+          instanceId,
+          mode: 'sync',
+          stdout: result.stdout,
+          stderr: result.stderr,
+          exitCode: result.exitCode,
         });
       } else {
-        // Set timeout to switch to async mode after the specified timeout
-        setTimeout(() => {
-          if (!hasResolved) {
-            hasResolved = true;
-            resolve({
-              mode: 'async',
-              instanceId,
-              stdout: processState.stdout.join('').trim(),
-              stderr: processState.stderr.join('').trim(),
-            });
-          }
-        }, options.timeout);
+        // Command is still running, switch to async mode
+        logger.verbose(`Command taking longer than ${timeout}ms, switching to async mode`);
+
+        return buildContentResponse({
+          instanceId,
+          mode: 'async',
+        });
       }
     } catch (error) {
-      console.error(`Failed to start process: ${errorToString(error)}`);
-      resolve({
-        mode: 'sync',
-        stdout: '',
-        stderr: '',
-        exitCode: 1,
-        error: errorToString(error),
+      // If sync mode failed due to buffer overflow or other reason, switch to async
+      logger.verbose(`Switching to async mode: ${errorToString(error)}`);
+
+      return buildContentResponse({
+        instanceId,
+        mode: 'async',
       });
     }
-  });
+  } catch (error) {
+    logger.error(`Error starting shell command: ${errorToString(error)}`);
+    
+    return buildContentResponse({
+      error: errorToString(error),
+    });
+  }
 }

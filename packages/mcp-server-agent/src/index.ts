@@ -2,11 +2,11 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import consola from 'consola';
 
 import { agentTracker } from './lib/agentState.js';
-import { agentDoneTool } from './tools/agentDone.js';
-import { agentMessageTool } from './tools/agentMessage.js';
-import { agentStartTool } from './tools/agentStart.js';
-import { clarificationPromptTool } from './tools/clarificationPrompt.js';
-import { listAgentsTool } from './tools/listAgents.js';
+import { agentDoneParameters, agentDoneExecute, agentDoneTool } from './tools/agentDone.js';
+import { agentMessageParameters, agentMessageExecute, agentMessageTool } from './tools/agentMessage.js';
+import { agentStartParameters, agentStartExecute, agentStartTool } from './tools/agentStart.js';
+import { clarificationPromptParameters, clarificationPromptExecute, clarificationPromptTool } from './tools/clarificationPrompt.js';
+import { listAgentsParameters, listAgentsExecute, listAgentsTool } from './tools/listAgents.js';
 
 /**
  * Create an Agent MCP server instance
@@ -22,16 +22,46 @@ export function createAgentMcpServer() {
   agentTracker.setLogger(consola);
 
   // Register the agent tools
-  server.tool('agentStart', agentStartTool.schema, agentStartTool.handler);
-  server.tool('agentMessage', agentMessageTool.schema, agentMessageTool.handler);
-  server.tool('agentDone', agentDoneTool.schema, agentDoneTool.handler);
-  server.tool('agentQuery', clarificationPromptTool.schema, clarificationPromptTool.handler);
-  server.tool('listAgents', listAgentsTool.schema, listAgentsTool.handler);
+  server.tool(
+    'agentStart',
+    'Start a new agent with specific goals and context',
+    agentStartParameters,
+    agentStartExecute
+  );
+  
+  server.tool(
+    'agentMessage',
+    'Send a message to a running agent or check its status',
+    agentMessageParameters,
+    agentMessageExecute
+  );
+  
+  server.tool(
+    'agentDone',
+    'Complete an agent task and return the final result',
+    agentDoneParameters,
+    agentDoneExecute
+  );
+  
+  server.tool(
+    'agentQuery',
+    'Ask a clarifying question to the user during agent execution',
+    clarificationPromptParameters,
+    clarificationPromptExecute
+  );
+  
+  server.tool(
+    'listAgents',
+    'List all agents and their current status',
+    listAgentsParameters,
+    listAgentsExecute
+  );
 
   consola.debug('Agent MCP server created');
   return server;
 }
 
+// Export the tools for backward compatibility
 export {
   agentStartTool,
   agentMessageTool,

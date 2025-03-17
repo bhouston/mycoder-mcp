@@ -3,12 +3,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 import { getPackageJson } from './lib/getPackageInfo.js';
-import { parameterSchema as shellStartParams, shellStartExecute } from './tools/shellStart.js';
-import {
-  parameterSchema as shellMessageParams,
-  shellMessageExecute,
-} from './tools/shellMessage.js';
-import { parameterSchema as listShellsParams, listShellsExecute } from './tools/listShells.js';
+import { shellStartParameters, shellStartExecute } from './tools/shellStart.js';
+import { shellMessageParameters, shellMessageExecute } from './tools/shellMessage.js';
+import { listShellsParameters, listShellsExecute } from './tools/listShells.js';
 import { shellTracker } from './tools/ShellTracker.js';
 
 // Create server instance with package information
@@ -22,7 +19,7 @@ const server = new McpServer({
 server.tool(
   'shellStart',
   'Starts a shell command with fast sync mode (default 100ms timeout) that falls back to async mode for longer-running commands',
-  shellStartParams,
+  shellStartParameters,
   shellStartExecute,
 );
 
@@ -30,7 +27,7 @@ server.tool(
 server.tool(
   'shellMessage',
   'Interacts with a running shell process, sending input and receiving output',
-  shellMessageParams,
+  shellMessageParameters,
   shellMessageExecute,
 );
 
@@ -38,7 +35,7 @@ server.tool(
 server.tool(
   'listBackgroundTools',
   'Lists all background tools (shells, browsers, agents) and their status',
-  listShellsParams,
+  listShellsParameters,
   listShellsExecute,
 );
 

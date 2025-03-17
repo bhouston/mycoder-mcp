@@ -3,7 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 import { getPackageJson } from './lib/getPackageInfo.js';
-import { parameterSchema, fetchExecute, logParameters, logReturns } from './tools/fetch.js';
+import { fetchParameters, fetchExecute } from './tools/fetch.js';
 
 // Create server instance with package information
 const packageJson = getPackageJson();
@@ -16,7 +16,7 @@ const server = new McpServer({
 server.tool(
   'fetch',
   'Executes HTTP requests using native Node.js fetch API, for using APIs, not for browsing the web.',
-  parameterSchema,
+  fetchParameters,
   fetchExecute,
 );
 
