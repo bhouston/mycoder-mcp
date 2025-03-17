@@ -1,32 +1,24 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
-import { Tool } from '../../core/types.js';
-
+// Define the parameter schema for the agentDone tool
 const parameterSchema = z.object({
   result: z.string().describe('The final result to return from the tool agent'),
 });
 
-const returnSchema = z.object({
-  result: z
-    .string()
-    .describe('This is returned to the caller of the tool agent.'),
-});
+// Export the agentDone tool schema and handler
+export const agentDoneTool = {
+  schema: parameterSchema,
+  handler: async (params: z.infer<typeof parameterSchema>) => {
+    const { result } = params;
 
-type Parameters = z.infer<typeof parameterSchema>;
-type ReturnType = z.infer<typeof returnSchema>;
-
-export const agentDoneTool: Tool<Parameters, ReturnType> = {
-  name: 'agentDone',
-  description: 'Completes the tool use sequence and returns the final result',
-  logPrefix: '✅',
-  parameters: parameterSchema,
-  parametersJsonSchema: zodToJsonSchema(parameterSchema),
-  returns: returnSchema,
-  returnsJsonSchema: zodToJsonSchema(returnSchema),
-  execute: ({ result }) => Promise.resolve({ result }),
-  logParameters: () => {},
-  logReturns: (output, { logger }) => {
-    logger.info(`Completed: ${output}`);
+    // Simply return the result
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ result }),
+        },
+      ],
+    };
   },
 };

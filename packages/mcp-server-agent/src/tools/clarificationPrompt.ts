@@ -1,37 +1,68 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import consola from 'consola';
+import { createInterface } from 'node:readline/promises';
 
-import { Tool } from '../../core/types.js';
-import { clarificationPrompt } from '../../utils/clarificationPrompt.js';
-
+// Define the parameter schema for the clarificationPrompt tool
 const parameterSchema = z.object({
   prompt: z.string().describe('The prompt message to display to the user'),
 });
 
-const returnSchema = z.object({
-  userText: z.string().describe("The user's response"),
-});
+/**
+ * Helper function to prompt the user for input
+ * @param prompt - The prompt to display to the user
+ * @returns The user's response
+ */
+async function promptUser(prompt: string): Promise<string> {
+  const readline = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 
-type Parameters = z.infer<typeof parameterSchema>;
-type ReturnType = z.infer<typeof returnSchema>;
+  try {
+    const response = await readline.question(`\n${prompt}\n> `);
+    return response;
+  } finally {
+    readline.close();
+  }
+}
 
-export const clarificationPromptTool: Tool<Parameters, ReturnType> = {
-  name: 'clarificationPrompt',
-  description: 'Prompts the user for input and returns their response',
-  logPrefix: '🗣️',
-  parameters: parameterSchema,
-  parametersJsonSchema: zodToJsonSchema(parameterSchema),
-  returns: returnSchema,
-  returnsJsonSchema: zodToJsonSchema(returnSchema),
-  execute: async ({ prompt }, { logger }) => {
-    logger.verbose(`Prompting user with: ${prompt}`);
+// Export the clarificationPrompt tool schema and handler
+export const clarificationPromptTool = {
+  schema: parameterSchema,
+  handler: async (params: z.infer<typeof parameterSchema>) => {
+    const { prompt } = params;
+    const logger = consola.create({ level: 3 });
 
-    const response = await clarificationPrompt(prompt);
+    logger.debug(`Prompting user with: ${prompt}`);
 
-    logger.verbose(`Received user response: ${response}`);
+    try {
+      const response = await promptUser(prompt);
+      
+      logger.debug(`Received user response: ${response}`);
 
-    return { userText: response };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ userText: response }),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error('Error prompting user:', error);
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              userText: 'Error getting user input',
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
   },
-  logParameters: () => {},
-  logReturns: () => {},
 };
