@@ -40,7 +40,7 @@ export default {
     ],
     defaultResources: ['example://docs/api'],
   },
-  
+
   // Logging configuration
   logging: {
     level: 'info', // 'debug', 'info', 'warn', 'error'

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { AgentStatus } from '../lib/AgentTracker';
-import { agentTracker } from '../lib/agentState';
+import { agentTracker } from '../lib/agentState.js';
+import { AgentStatus } from '../lib/AgentTracker.js';
 
 // Define the parameter schema for the listAgents tool
 const parameterSchema = z.object({
@@ -23,7 +23,7 @@ export const listAgentsTool = {
 
     // Get the agents with the specified status
     let agents = agentTracker.listAgents();
-    
+
     if (status !== 'all') {
       const statusMap = {
         running: AgentStatus.RUNNING,
@@ -31,12 +31,14 @@ export const listAgentsTool = {
         error: AgentStatus.ERROR,
         terminated: AgentStatus.TERMINATED,
       };
-      
-      agents = agents.filter(agent => agent.status === statusMap[status as keyof typeof statusMap]);
+
+      agents = agents.filter(
+        (agent) => agent.status === statusMap[status as keyof typeof statusMap],
+      );
     }
 
     // Format the agents for output
-    const formattedAgents = agents.map(agent => {
+    const formattedAgents = agents.map((agent) => {
       const basicInfo = {
         id: agent.id,
         goal: agent.goal,

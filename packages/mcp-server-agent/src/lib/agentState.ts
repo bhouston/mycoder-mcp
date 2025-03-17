@@ -1,4 +1,4 @@
-import { AgentTracker } from './AgentTracker';
+import { AgentTracker } from './AgentTracker.js';
 
 /**
  * Agent state information

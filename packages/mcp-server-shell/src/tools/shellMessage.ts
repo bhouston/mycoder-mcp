@@ -49,11 +49,15 @@ export const parameterSchema = z.object({
   showStdIn: z
     .boolean()
     .optional()
-    .describe('Whether to show the input to the user, or keep the output clean (default: false or value from shellStart)'),
+    .describe(
+      'Whether to show the input to the user, or keep the output clean (default: false or value from shellStart)',
+    ),
   showStdout: z
     .boolean()
     .optional()
-    .describe('Whether to show output to the user, or keep the output clean (default: false or value from shellStart)'),
+    .describe(
+      'Whether to show output to the user, or keep the output clean (default: false or value from shellStart)',
+    ),
 });
 
 export const returnSchema = z.object({
@@ -69,9 +73,13 @@ export const returnSchema = z.object({
 type Parameters = z.infer<typeof parameterSchema>;
 type ReturnType = z.infer<typeof returnSchema>;
 
-export const shellMessageExecute = async (
-  { instanceId, stdin, signal, showStdIn, showStdout }: Parameters,
-): Promise<{ content: { type: 'text'; text: string }[] }> => {
+export const shellMessageExecute = async ({
+  instanceId,
+  stdin,
+  signal,
+  showStdIn,
+  showStdout,
+}: Parameters): Promise<{ content: { type: 'text'; text: string }[] }> => {
   try {
     const result = await interactWithShell(instanceId, {
       stdin,
@@ -79,7 +87,7 @@ export const shellMessageExecute = async (
       showStdIn,
       showStdout,
     });
-    
+
     return {
       content: [
         {
@@ -90,7 +98,7 @@ export const shellMessageExecute = async (
     };
   } catch (error) {
     console.error(`Error interacting with shell: ${errorToString(error)}`);
-    
+
     // Return error result
     return {
       content: [
@@ -136,7 +144,7 @@ async function interactWithShell(
   if (options.showStdIn !== undefined) {
     processState.showStdIn = options.showStdIn;
   }
-  
+
   if (options.showStdout !== undefined) {
     processState.showStdout = options.showStdout;
   }
@@ -146,14 +154,14 @@ async function interactWithShell(
     if (processState.showStdIn) {
       console.error(`[${instanceId}] stdin: ${options.stdin}`);
     }
-    
+
     if (processState.state.completed) {
       throw new Error(`Cannot send input to completed process`);
     }
-    
+
     try {
       processState.process.stdin?.write(options.stdin);
-      
+
       // Add a newline if not present
       if (!options.stdin.endsWith('\n')) {
         processState.process.stdin?.write('\n');
@@ -168,11 +176,11 @@ async function interactWithShell(
     if (processState.state.completed) {
       throw new Error(`Cannot send signal to completed process`);
     }
-    
+
     try {
       processState.process.kill(options.signal);
       console.error(`[${instanceId}] Sent signal ${options.signal} to process`);
-      
+
       if (options.signal === 'SIGKILL' || options.signal === 'SIGTERM') {
         shellTracker.updateShellStatus(instanceId, ShellStatus.TERMINATED);
       }

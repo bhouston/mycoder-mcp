@@ -4,7 +4,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 import { getPackageJson } from './lib/getPackageInfo.js';
 import { parameterSchema as shellStartParams, shellStartExecute } from './tools/shellStart.js';
-import { parameterSchema as shellMessageParams, shellMessageExecute } from './tools/shellMessage.js';
+import {
+  parameterSchema as shellMessageParams,
+  shellMessageExecute,
+} from './tools/shellMessage.js';
 import { parameterSchema as listShellsParams, listShellsExecute } from './tools/listShells.js';
 import { shellTracker } from './tools/ShellTracker.js';
 
@@ -40,9 +43,7 @@ server.tool(
 );
 
 async function main() {
-  console.error(
-    `Starting ${packageJson.name} MCP Server v${packageJson.version}...`,
-  );
+  console.error(`Starting ${packageJson.name} MCP Server v${packageJson.version}...`);
 
   try {
     console.error('Initializing StdioServerTransport...');
@@ -51,9 +52,7 @@ async function main() {
     console.error('Connecting server to transport...');
     await server.connect(transport);
 
-    console.error(
-      `${packageJson.name} MCP Server v${packageJson.version} running on stdio`,
-    );
+    console.error(`${packageJson.name} MCP Server v${packageJson.version} running on stdio`);
     console.error('Server ready to accept commands');
 
     // Setup cleanup on exit
@@ -72,7 +71,6 @@ async function main() {
       await shellTracker.cleanupAllShells();
       process.exit(0);
     });
-
   } catch (error) {
     console.error('Error during server startup:', error);
     throw error;

@@ -50,10 +50,7 @@ describe('ShellTracker', () => {
   });
 
   it('should return false when updating non-existent shell', () => {
-    const updated = shellTracker.updateShellStatus(
-      'non-existent-id',
-      ShellStatus.COMPLETED,
-    );
+    const updated = shellTracker.updateShellStatus('non-existent-id', ShellStatus.COMPLETED);
 
     expect(updated).toBe(false);
   });

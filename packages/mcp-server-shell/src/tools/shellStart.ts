@@ -10,9 +10,7 @@ import type { ProcessState } from './ShellTracker.js';
 
 export const parameterSchema = z.object({
   command: z.string().describe('The shell command to execute'),
-  description: z
-    .string()
-    .describe('The reason this shell command is being run (max 80 chars)'),
+  description: z.string().describe('The reason this shell command is being run (max 80 chars)'),
   timeout: z
     .number()
     .optional()
@@ -42,9 +40,7 @@ export const returnSchema = z.union([
       exitCode: z.number(),
       error: z.string().optional(),
     })
-    .describe(
-      'Synchronous execution results when command completes within timeout',
-    ),
+    .describe('Synchronous execution results when command completes within timeout'),
   z
     .object({
       mode: z.literal('async'),
@@ -61,16 +57,14 @@ type ReturnType = z.infer<typeof returnSchema>;
 
 const DEFAULT_TIMEOUT = 1000 * 10; // 10 seconds
 
-export const shellStartExecute = async (
-  {
-    command,
-    timeout = DEFAULT_TIMEOUT,
-    showStdIn = false,
-    showStdout = false,
-  }: Parameters,
-): Promise<{ content: { type: 'text'; text: string }[] }> => {
+export const shellStartExecute = async ({
+  command,
+  timeout = DEFAULT_TIMEOUT,
+  showStdIn = false,
+  showStdout = false,
+}: Parameters): Promise<{ content: { type: 'text'; text: string }[] }> => {
   console.error(`Starting shell command: ${command}`);
-  
+
   if (showStdIn) {
     console.error(`Command input: ${command}`);
   }
@@ -81,7 +75,7 @@ export const shellStartExecute = async (
       showStdIn,
       showStdout,
     });
-    
+
     return {
       content: [
         {
@@ -92,7 +86,7 @@ export const shellStartExecute = async (
     };
   } catch (error) {
     console.error(`Error executing shell command: ${errorToString(error)}`);
-    
+
     // Return error result
     return {
       content: [
@@ -189,9 +183,7 @@ async function executeShellCommand(
       });
 
       process.on('exit', (code, signal) => {
-        console.error(
-          `[${instanceId}] Process exited with code ${code} and signal ${signal}`,
-        );
+        console.error(`[${instanceId}] Process exited with code ${code} and signal ${signal}`);
 
         processState.state.completed = true;
         processState.state.signaled = signal !== null;

@@ -5,7 +5,7 @@ import { agentStates, agentTracker } from '../lib/agentState.js';
 import { AgentStatus } from '../lib/AgentTracker.js';
 
 // Define the parameter schema for the agentStart tool
-const parameterSchema = z.object({
+export const agentStartParameters = {
   description: z.string().describe("A brief description of the agent's purpose (max 80 chars)"),
   goal: z.string().describe('The main objective that the agent needs to achieve'),
   projectContext: z.string().describe('Context about the problem or environment'),
@@ -14,7 +14,10 @@ const parameterSchema = z.object({
     .string()
     .optional()
     .describe('A list of files, which may include ** or * wildcard characters'),
-});
+};
+
+// Define the parameter schema using z.object
+const parameterSchema = z.object(agentStartParameters);
 
 // Define the return schema for the agentStart tool
 const returnSchema = z.object({
@@ -22,13 +25,38 @@ const returnSchema = z.object({
   status: z.string().describe('The initial status of the agent'),
 });
 
-// Export the agentStart tool schema and handler
-export const agentStartTool = {
-  schema: parameterSchema,
-  handler: async (params: z.infer<typeof parameterSchema>) => {
+// Type inference for parameters
+type Parameters = z.infer<typeof parameterSchema>;
+type ReturnType = z.infer<typeof returnSchema>;
+
+// Define the content response type to match SDK expectations
+type ContentResponse = {
+  content: {
+    type: 'text';
+    text: string;
+  }[];
+  isError?: boolean;
+};
+
+// Helper function to build consistent responses
+const buildContentResponse = (result: ReturnType | { error: string }): ContentResponse => {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(result),
+      },
+    ],
+    ...(('error' in result) && { isError: true }),
+  };
+};
+
+// Export the handler function
+export const agentStartExecute = async (parameters: Parameters): Promise<ContentResponse> => {
+  try {
     // Validate parameters
     const { description, goal, projectContext, workingDirectory, relevantFilesDirectories } =
-      params;
+      parameters;
 
     // Create an instance ID
     const instanceId = uuidv4();
@@ -42,10 +70,10 @@ export const agentStartTool = {
       `Goal: ${goal}`,
       `Project Context: ${projectContext}`,
       workingDirectory ? `Working Directory: ${workingDirectory}` : '',
-      relevantFilesDirectories ? `Relevant Files:\\n  ${relevantFilesDirectories}` : '',
+      relevantFilesDirectories ? `Relevant Files:\n  ${relevantFilesDirectories}` : '',
     ]
       .filter(Boolean)
-      .join('\\n');
+      .join('\n');
 
     // Store the agent state
     const agentState = {
@@ -98,16 +126,19 @@ export const agentStartTool = {
     });
 
     // Return the instance ID and status
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            instanceId,
-            status: 'Agent started successfully',
-          }),
-        },
-      ],
-    };
-  },
+    return buildContentResponse({
+      instanceId,
+      status: 'Agent started successfully',
+    });
+  } catch (error) {
+    return buildContentResponse({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+// For backward compatibility
+export const agentStartTool = {
+  schema: agentStartParameters,
+  handler: agentStartExecute,
 };

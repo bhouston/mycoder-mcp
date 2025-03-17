@@ -32,13 +32,14 @@ export const returnSchema = z.object({
 type Parameters = z.infer<typeof parameterSchema>;
 type ReturnType = z.infer<typeof returnSchema>;
 
-export const listShellsExecute = async (
-  { status = 'all', verbose = false }: Parameters,
-): Promise<{ content: { type: 'text'; text: string }[] }> => {
+export const listShellsExecute = async ({
+  status = 'all',
+  verbose = false,
+}: Parameters): Promise<{ content: { type: 'text'; text: string }[] }> => {
   try {
     // Get shells based on status filter
     let shells = shellTracker.getShells();
-    
+
     if (status !== 'all') {
       shells = shells.filter((shell) => shell.status === status);
     }
@@ -67,8 +68,10 @@ export const listShellsExecute = async (
       ],
     };
   } catch (error) {
-    console.error(`Error listing shells: ${error instanceof Error ? error.message : String(error)}`);
-    
+    console.error(
+      `Error listing shells: ${error instanceof Error ? error.message : String(error)}`,
+    );
+
     // Return empty result on error
     return {
       content: [

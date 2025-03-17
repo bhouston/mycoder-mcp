@@ -60,7 +60,7 @@ export class AgentTracker {
   updateAgentStatus(
     id: string,
     status: AgentStatus,
-    details?: { result?: string; error?: string; metadata?: Record<string, any> }
+    details?: { result?: string; error?: string; metadata?: Record<string, any> },
   ): void {
     const agent = this.agents.get(id);
     if (!agent) {
@@ -69,25 +69,29 @@ export class AgentTracker {
     }
 
     agent.status = status;
-    
-    if (status === AgentStatus.COMPLETED || status === AgentStatus.ERROR || status === AgentStatus.TERMINATED) {
+
+    if (
+      status === AgentStatus.COMPLETED ||
+      status === AgentStatus.ERROR ||
+      status === AgentStatus.TERMINATED
+    ) {
       agent.endTime = new Date();
     }
-    
+
     if (details) {
       if (details.result !== undefined) {
         agent.result = details.result;
       }
-      
+
       if (details.error !== undefined) {
         agent.error = details.error;
       }
-      
+
       if (details.metadata) {
         agent.metadata = { ...agent.metadata, ...details.metadata };
       }
     }
-    
+
     this.logger.debug(`Updated agent ${id} status to ${status}`);
   }
 
@@ -107,11 +111,11 @@ export class AgentTracker {
    */
   listAgents(filter?: { status?: AgentStatus }): AgentInfo[] {
     const agents = Array.from(this.agents.values());
-    
+
     if (filter?.status) {
-      return agents.filter(agent => agent.status === filter.status);
+      return agents.filter((agent) => agent.status === filter.status);
     }
-    
+
     return agents;
   }
 
@@ -119,15 +123,16 @@ export class AgentTracker {
    * Clean up completed agents
    * @param olderThan - Only clean up agents that completed more than this many milliseconds ago
    */
-  cleanupCompletedAgents(olderThan: number = 3600000): void { // Default: 1 hour
+  cleanupCompletedAgents(olderThan: number = 3600000): void {
+    // Default: 1 hour
     const now = new Date();
-    
+
     for (const [id, agent] of this.agents.entries()) {
       if (
-        (agent.status === AgentStatus.COMPLETED || 
-         agent.status === AgentStatus.ERROR || 
-         agent.status === AgentStatus.TERMINATED) && 
-        agent.endTime && 
+        (agent.status === AgentStatus.COMPLETED ||
+          agent.status === AgentStatus.ERROR ||
+          agent.status === AgentStatus.TERMINATED) &&
+        agent.endTime &&
         now.getTime() - agent.endTime.getTime() > olderThan
       ) {
         this.agents.delete(id);
