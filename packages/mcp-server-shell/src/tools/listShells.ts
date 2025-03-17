@@ -1,98 +1,82 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
-
-import { Tool } from '../../core/types.js';
 
 import { ShellStatus, shellTracker } from './ShellTracker.js';
 
-const parameterSchema = z.object({
+export const parameterSchema = z.object({
   status: z
     .enum(['all', 'running', 'completed', 'error', 'terminated'])
     .optional()
-    .describe('Filter shells by status (default: "all")'),
+    .default('all')
+    .describe('Filter tools by status (default: "all")'),
   verbose: z
     .boolean()
     .optional()
-    .describe('Include detailed metadata about each shell (default: false)'),
+    .default(false)
+    .describe('Include detailed metadata about each tool (default: false)'),
 });
 
-const returnSchema = z.object({
+export const returnSchema = z.object({
   shells: z.array(
     z.object({
       id: z.string(),
-      status: z.string(),
+      status: z.enum(['running', 'completed', 'error', 'terminated']),
+      command: z.string(),
       startTime: z.string(),
       endTime: z.string().optional(),
-      runtime: z.number().describe('Runtime in seconds'),
-      command: z.string(),
+      exitCode: z.number().nullable().optional(),
       metadata: z.record(z.any()).optional(),
     }),
   ),
-  count: z.number(),
 });
 
 type Parameters = z.infer<typeof parameterSchema>;
 type ReturnType = z.infer<typeof returnSchema>;
 
-export const listShellsTool: Tool<Parameters, ReturnType> = {
-  name: 'listShells',
-  description: 'Lists all shell processes and their status',
-  logPrefix: '🔍',
-  parameters: parameterSchema,
-  returns: returnSchema,
-  parametersJsonSchema: zodToJsonSchema(parameterSchema),
-  returnsJsonSchema: zodToJsonSchema(returnSchema),
-
-  execute: async (
-    { status = 'all', verbose = false },
-    { logger },
-  ): Promise<ReturnType> => {
-    logger.verbose(
-      `Listing shell processes with status: ${status}, verbose: ${verbose}`,
-    );
-
-    // Get all shells
+export const listShellsExecute = async (
+  { status = 'all', verbose = false }: Parameters,
+): Promise<{ content: { type: 'text'; text: string }[] }> => {
+  try {
+    // Get shells based on status filter
     let shells = shellTracker.getShells();
-
-    // Filter by status if specified
+    
     if (status !== 'all') {
-      const statusEnum = status.toUpperCase() as keyof typeof ShellStatus;
-      shells = shells.filter(
-        (shell) => shell.status === ShellStatus[statusEnum],
-      );
+      shells = shells.filter((shell) => shell.status === status);
     }
 
-    // Format the response
-    const formattedShells = shells.map((shell) => {
-      const now = new Date();
-      const startTime = shell.startTime;
-      const endTime = shell.endTime || now;
-      const runtime = (endTime.getTime() - startTime.getTime()) / 1000; // in seconds
-
-      return {
+    // Map shells to the return format
+    const result: ReturnType = {
+      shells: shells.map((shell) => ({
         id: shell.id,
         status: shell.status,
-        startTime: startTime.toISOString(),
-        ...(shell.endTime && { endTime: shell.endTime.toISOString() }),
-        runtime: parseFloat(runtime.toFixed(2)),
         command: shell.metadata.command,
+        startTime: shell.startTime.toISOString(),
+        ...(shell.endTime && { endTime: shell.endTime.toISOString() }),
+        ...(shell.metadata.exitCode !== undefined && {
+          exitCode: shell.metadata.exitCode,
+        }),
         ...(verbose && { metadata: shell.metadata }),
-      };
-    });
+      })),
+    };
 
     return {
-      shells: formattedShells,
-      count: formattedShells.length,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result),
+        },
+      ],
     };
-  },
-
-  logParameters: ({ status = 'all', verbose = false }, { logger }) => {
-    logger.info(
-      `Listing shell processes with status: ${status}, verbose: ${verbose}`,
-    );
-  },
-
-  logReturns: (output, { logger }) => {
-    logger.info(`Found ${output.count} shell processes`);
-  },
+  } catch (error) {
+    console.error(`Error listing shells: ${error instanceof Error ? error.message : String(error)}`);
+    
+    // Return empty result on error
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ shells: [] }),
+        },
+      ],
+    };
+  }
 };
