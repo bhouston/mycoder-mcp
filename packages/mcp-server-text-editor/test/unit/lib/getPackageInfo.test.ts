@@ -9,7 +9,7 @@ describe('getPackageInfo', () => {
 
       // Verify that the returned object has the expected properties
       expect(packageJson).toBeDefined();
-      expect(packageJson.name).toBe('mcp-server-text-editor');
+      expect(packageJson.name).toBe('@mycoder-mcp/mcp-server-text-editor');
       expect(packageJson.version).toBeDefined();
       expect(packageJson.type).toBe('module');
       expect(packageJson.bin).toBeDefined();

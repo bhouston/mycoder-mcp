@@ -1,5 +1,5 @@
 {
-  "name": "mcp-server-text-editor",
+  "name": "@mycoder-mcp/mcp-server-text-editor",
   "description": "An open source implementation of the Claude built-in text editor tool",
   "version": "1.0.1",
   "type": "module",
@@ -9,15 +9,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bhouston/mcp-server-text-editor.git"
+    "url": "git+https://github.com/bhouston/mycoder-mcp.git"
   },
-  "homepage": "https://github.com/bhouston/mcp-server-text-editor",
+  "homepage": "https://github.com/bhouston/mycoder-mcp",
   "scripts": {
     "build": "tsc && chmod 755 ./dist/index.js",
     "start": "node dist/index.js",
-    "typecheck": "pnpm -r typecheck",
-    "lint": "eslint . --fix",
-    "format": "prettier . --write",
+    "typecheck": "tsc --noEmit",
     "clean": "rimraf dist",
     "clean:all": "rimraf node_modules dist",
     "test": "vitest run",
@@ -39,23 +37,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9",
-    "@types/node": "^22.13.10",
-    "@typescript-eslint/eslint-plugin": "^8.23.0",
-    "@typescript-eslint/parser": "^8.23.0",
     "@vitest/coverage-v8": "^3.0.8",
     "@vitest/ui": "^3.0.8",
-    "eslint": "^9.0.0",
-    "eslint-config-prettier": "^9",
-    "eslint-import-resolver-typescript": "^3.8.3",
-    "eslint-plugin-import": "^2",
-    "eslint-plugin-prettier": "^5",
-    "eslint-plugin-promise": "^7.2.1",
-    "eslint-plugin-unused-imports": "^4.1.4",
-    "prettier": "^3.5.1",
-    "type-fest": "^4.37.0",
-    "typescript": "^5.8.2",
-    "typescript-eslint": "^8.23.0",
-    "vitest": "^3.0.8"
+    "type-fest": "^4.37.0"
   }
 }
