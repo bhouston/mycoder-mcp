@@ -2,7 +2,7 @@ import { defineCommand } from 'citty';
 import consola from 'consola';
 import fs from 'node:fs/promises';
 
-import { loadMyCoderConfig } from '../config';
+import { loadMyCoderConfig } from '../config.js';
 
 // Define the default command
 export const defaultCommand = defineCommand({
@@ -25,10 +25,10 @@ export const defaultCommand = defineCommand({
   async run({ args }) {
     try {
       const config = await loadMyCoderConfig();
-      
+
       // Determine if we're using a file or direct prompt
       let prompt: string | undefined;
-      
+
       if (args.f) {
         // Load prompt from file
         try {
@@ -43,15 +43,17 @@ export const defaultCommand = defineCommand({
         prompt = args.prompt;
       } else {
         // No prompt provided, show help
-        consola.info('No prompt provided. Please provide a prompt or use the -f option to specify a file.');
+        consola.info(
+          'No prompt provided. Please provide a prompt or use the -f option to specify a file.',
+        );
         consola.info('Example: mycoder "What is the weather today?"');
         consola.info('Example: mycoder -f prompt.txt');
         return 0;
       }
-      
+
       // TODO: Initialize agent MCP server
       // TODO: Start the agent with the provided prompt
-      
+
       consola.info('Executing prompt:', prompt);
       consola.success('Execution completed');
       return 0;

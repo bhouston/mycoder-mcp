@@ -1,27 +1,22 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
-import { Tool } from '../../core/types.js';
-
-const parameterSchema = z.object({
-  method: z
-    .string()
-    .describe(
-      'HTTP method to use (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)',
-    ),
+// Define the parameter schema for the fetch tool
+export const fetchParameters = {
+  method: z.string().describe('HTTP method to use (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)'),
   url: z.string().describe('URL to make the request to'),
-  params: z
-    .record(z.any())
-    .optional()
-    .describe('Optional query parameters to append to the URL'),
+  params: z.record(z.any()).optional().describe('Optional query parameters to append to the URL'),
   body: z
     .record(z.any())
     .optional()
     .describe('Optional request body (for POST, PUT, PATCH requests)'),
   headers: z.record(z.string()).optional().describe('Optional request headers'),
-});
+};
 
-const returnSchema = z
+// Define the parameter schema using z.object
+export const parameterSchema = z.object(fetchParameters);
+
+// Define the return schema for the fetch tool
+export const returnSchema = z
   .object({
     status: z.number(),
     statusText: z.string(),
@@ -30,22 +25,42 @@ const returnSchema = z
   })
   .describe('HTTP response including status, headers, and body');
 
+// Type inference for parameters
 type Parameters = z.infer<typeof parameterSchema>;
 type ReturnType = z.infer<typeof returnSchema>;
 
-export const fetchTool: Tool<Parameters, ReturnType> = {
-  name: 'fetch',
-  description:
-    'Executes HTTP requests using native Node.js fetch API, for using APIs, not for browsing the web.',
-  logPrefix: '🌐',
-  parameters: parameterSchema,
-  returns: returnSchema,
-  parametersJsonSchema: zodToJsonSchema(parameterSchema),
-  returnsJsonSchema: zodToJsonSchema(returnSchema),
-  execute: async (
-    { method, url, params, body, headers }: Parameters,
-    { logger },
-  ): Promise<ReturnType> => {
+// Define the content response type to match SDK expectations
+type ContentResponse = {
+  content: {
+    type: 'text';
+    text: string;
+  }[];
+  isError?: boolean;
+};
+
+// Helper function to build consistent responses
+const buildContentResponse = (result: ReturnType | { error: string }): ContentResponse => {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(result),
+      },
+    ],
+    ...('error' in result && { isError: true }),
+  };
+};
+
+// Export the handler function
+export async function fetchExecute(
+  { method, url, params, body, headers }: Parameters,
+  extra: any,
+): Promise<ContentResponse> {
+  const logger = extra.logger || {
+    verbose: console.debug,
+    info: console.info,
+  };
+  try {
     logger.verbose(`Starting ${method} request to ${url}`);
     const urlObj = new URL(url);
 
@@ -75,9 +90,7 @@ export const fetchTool: Tool<Parameters, ReturnType> = {
 
     logger.verbose('Request options:', options);
     const response = await fetch(urlObj.toString(), options);
-    logger.verbose(
-      `Request completed with status ${response.status} ${response.statusText}`,
-    );
+    logger.verbose(`Request completed with status ${response.status} ${response.statusText}`);
 
     const contentType = response.headers.get('content-type');
     const responseBody = contentType?.includes('application/json')
@@ -86,22 +99,33 @@ export const fetchTool: Tool<Parameters, ReturnType> = {
 
     logger.verbose('Response content-type:', contentType);
 
-    return {
+    return buildContentResponse({
       status: response.status,
       statusText: response.statusText,
       headers: Object.fromEntries(response.headers),
       body: responseBody as ReturnType['body'],
-    };
-  },
-  logParameters(params, { logger }) {
-    const { method, url, params: queryParams } = params;
-    logger.info(
-      `${method} ${url}${queryParams ? `?${new URLSearchParams(queryParams).toString()}` : ''}`,
-    );
-  },
+    });
+  } catch (error) {
+    return buildContentResponse({
+      error: error instanceof Error ? error.message : `Unknown error occurred: ${String(error)}`,
+    });
+  }
+}
 
-  logReturns: (result, { logger }) => {
-    const { status, statusText } = result;
-    logger.info(`${status} ${statusText}`);
-  },
-};
+export function logParameters(
+  params: Parameters,
+  { logger }: { logger: { info: (message: string, ...args: any[]) => void } },
+) {
+  const { method, url, params: queryParams } = params;
+  logger.info(
+    `${method} ${url}${queryParams ? `?${new URLSearchParams(queryParams).toString()}` : ''}`,
+  );
+}
+
+export function logReturns(
+  result: ReturnType,
+  { logger }: { logger: { info: (message: string, ...args: any[]) => void } },
+) {
+  const { status, statusText } = result;
+  logger.info(`${status} ${statusText}`);
+}

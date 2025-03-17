@@ -16,6 +16,7 @@ A Model Context Protocol (MCP) server for executing and managing shell commands.
 Starts a shell command with fast sync mode (default 10s timeout) that falls back to async mode for longer-running commands.
 
 Parameters:
+
 - `command`: The shell command to execute
 - `description`: The reason this shell command is being run (max 80 chars)
 - `timeout`: (Optional) Timeout in ms before switching to async mode (default: 10s)
@@ -23,6 +24,7 @@ Parameters:
 - `showStdout`: (Optional) Whether to show command output to the user (default: false)
 
 Returns:
+
 - For sync mode (command completes within timeout):
   - `mode`: "sync"
   - `stdout`: Command standard output
@@ -41,6 +43,7 @@ Returns:
 Interacts with a running shell process, sending input and receiving output.
 
 Parameters:
+
 - `instanceId`: The ID returned by shellStart
 - `description`: The reason for this shell interaction (max 80 chars)
 - `stdin`: (Optional) Input to send to the process
@@ -49,6 +52,7 @@ Parameters:
 - `showStdout`: (Optional) Whether to show output to the user (default: false or value from shellStart)
 
 Returns:
+
 - `success`: Whether the operation was successful
 - `status`: Current status of the shell process ("running", "completed", "error", "terminated")
 - `stdout`: Current standard output of the process
@@ -62,10 +66,12 @@ Returns:
 Lists all background tools (shells) and their status.
 
 Parameters:
+
 - `status`: (Optional) Filter tools by status (default: "all", options: "all", "running", "completed", "error", "terminated")
 - `verbose`: (Optional) Include detailed metadata about each tool (default: false)
 
 Returns:
+
 - `shells`: Array of shell process information
   - `id`: Shell process ID
   - `status`: Current status

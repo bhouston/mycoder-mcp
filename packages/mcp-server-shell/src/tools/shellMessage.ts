@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { errorToString } from '../lib/errorToString.js';
 import { ShellStatus, shellTracker } from './ShellTracker.js';
 
-export const parameterSchema = z.object({
+// Define the parameter schema for the shellMessage tool
+export const shellMessageParameters = {
   instanceId: z.string().describe('The ID returned by shellStart'),
   description: z.string().describe('The reason for this shell interaction (max 80 chars)'),
   stdin: z.string().optional().describe('Input to send to process'),
@@ -49,155 +50,165 @@ export const parameterSchema = z.object({
   showStdIn: z
     .boolean()
     .optional()
-    .describe('Whether to show the input to the user, or keep the output clean (default: false or value from shellStart)'),
+    .describe(
+      'Whether to show the input to the user, or keep the output clean (default: false or value from shellStart)',
+    ),
   showStdout: z
     .boolean()
     .optional()
-    .describe('Whether to show output to the user, or keep the output clean (default: false or value from shellStart)'),
+    .describe(
+      'Whether to show output to the user, or keep the output clean (default: false or value from shellStart)',
+    ),
+};
+
+// Define the parameter schema using z.object
+export const parameterSchema = z.object(shellMessageParameters);
+
+// Define the return schema for the shellMessage tool
+const returnSchema = z.object({
+  stdout: z.string().describe('The standard output since the last check'),
+  stderr: z.string().describe('The standard error since the last check'),
+  status: z.enum(['running', 'completed', 'error', 'terminated']).describe('Current status of the shell process'),
+  exitCode: z.number().optional().describe('Exit code if the process has completed'),
+  error: z.string().optional().describe('Error message if something went wrong'),
 });
 
-export const returnSchema = z.object({
-  success: z.boolean(),
-  status: z.enum(['running', 'completed', 'error', 'terminated']),
-  stdout: z.string(),
-  stderr: z.string(),
-  exitCode: z.number().nullable(),
-  message: z.string(),
-  error: z.string().optional(),
-});
-
+// Type inference for parameters
 type Parameters = z.infer<typeof parameterSchema>;
 type ReturnType = z.infer<typeof returnSchema>;
 
-export const shellMessageExecute = async (
-  { instanceId, stdin, signal, showStdIn, showStdout }: Parameters,
-): Promise<{ content: { type: 'text'; text: string }[] }> => {
-  try {
-    const result = await interactWithShell(instanceId, {
-      stdin,
-      signal,
-      showStdIn,
-      showStdout,
-    });
-    
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result),
-        },
-      ],
-    };
-  } catch (error) {
-    console.error(`Error interacting with shell: ${errorToString(error)}`);
-    
-    // Return error result
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            status: 'error',
-            stdout: '',
-            stderr: '',
-            exitCode: null,
-            message: errorToString(error),
-            error: errorToString(error),
-          }),
-        },
-      ],
-    };
+// Define the content response type to match SDK expectations
+type ContentResponse = {
+  content: {
+    type: 'text';
+    text: string;
+  }[];
+  isError?: boolean;
+};
+
+// Helper function to build consistent responses
+const buildContentResponse = (result: ReturnType | { error: string }): ContentResponse => {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(result),
+      },
+    ],
+    ...('error' in result && !('status' in result) && { isError: true }),
+  };
+};
+
+// Map internal shell status to the external API status
+const mapStatus = (status: ShellStatus): 'running' | 'completed' | 'error' | 'terminated' => {
+  switch (status) {
+    case ShellStatus.RUNNING:
+      return 'running';
+    case ShellStatus.COMPLETED:
+      return 'completed';
+    case ShellStatus.ERROR:
+      return 'error';
+    case ShellStatus.TERMINATED:
+      return 'terminated';
+    default:
+      return 'error';
   }
 };
 
-async function interactWithShell(
-  instanceId: string,
-  options: {
-    stdin?: string;
-    signal?: string;
-    showStdIn?: boolean;
-    showStdout?: boolean;
-  },
-): Promise<ReturnType> {
-  // Get the shell process
-  const shell = shellTracker.getShellById(instanceId);
-  if (!shell) {
-    throw new Error(`Shell process with ID ${instanceId} not found`);
-  }
+/**
+ * Interact with a running shell process
+ */
+export async function shellMessageExecute(
+  parameters: Parameters,
+  extra: any,
+): Promise<ContentResponse> {
+  const { instanceId, stdin, signal, showStdIn, showStdout } = parameters;
+  const logger = extra.logger || console;
 
-  // Get the process state
-  const processState = shellTracker.processStates.get(instanceId);
-  if (!processState) {
-    throw new Error(`Process state for shell ${instanceId} not found`);
-  }
+  try {
+    logger.verbose(`Shell message for instance ${instanceId}`);
 
-  // Apply showStdIn and showStdout from options if provided
-  if (options.showStdIn !== undefined) {
-    processState.showStdIn = options.showStdIn;
-  }
-  
-  if (options.showStdout !== undefined) {
-    processState.showStdout = options.showStdout;
-  }
-
-  // Send input to the process if provided
-  if (options.stdin) {
-    if (processState.showStdIn) {
-      console.error(`[${instanceId}] stdin: ${options.stdin}`);
+    // Get the shell state
+    const shellState = shellTracker.getShellById(instanceId);
+    if (!shellState) {
+      throw new Error(`No shell found with ID ${instanceId}`);
     }
-    
-    if (processState.state.completed) {
-      throw new Error(`Cannot send input to completed process`);
-    }
-    
-    try {
-      processState.process.stdin?.write(options.stdin);
-      
-      // Add a newline if not present
-      if (!options.stdin.endsWith('\n')) {
-        processState.process.stdin?.write('\n');
+
+    // Handle sending a signal
+    if (signal) {
+      logger.verbose(`Sending signal ${signal} to process`);
+      try {
+        shellState.process.kill(signal);
+        return buildContentResponse({
+          stdout: '',
+          stderr: '',
+          status: mapStatus(shellState.status),
+          ...(shellState.exitCode && { exitCode: shellState.exitCode }),
+        });
+      } catch (error) {
+        logger.error(`Error sending signal: ${errorToString(error)}`);
+        return buildContentResponse({
+          stdout: '',
+          stderr: '',
+          status: mapStatus(shellState.status),
+          error: `Failed to send signal: ${errorToString(error)}`,
+          ...(shellState.exitCode && { exitCode: shellState.exitCode }),
+        });
       }
-    } catch (error) {
-      throw new Error(`Failed to send input to process: ${errorToString(error)}`);
     }
-  }
 
-  // Send signal to the process if provided
-  if (options.signal) {
-    if (processState.state.completed) {
-      throw new Error(`Cannot send signal to completed process`);
-    }
-    
-    try {
-      processState.process.kill(options.signal);
-      console.error(`[${instanceId}] Sent signal ${options.signal} to process`);
-      
-      if (options.signal === 'SIGKILL' || options.signal === 'SIGTERM') {
-        shellTracker.updateShellStatus(instanceId, ShellStatus.TERMINATED);
+    // Send input if provided
+    if (stdin) {
+      if (shellState.status !== ShellStatus.RUNNING) {
+        return buildContentResponse({
+          stdout: '',
+          stderr: '',
+          status: mapStatus(shellState.status),
+          error: 'Cannot send input to a process that is not running',
+          ...(shellState.exitCode && { exitCode: shellState.exitCode }),
+        });
       }
-    } catch (error) {
-      throw new Error(`Failed to send signal to process: ${errorToString(error)}`);
+
+      // Send the input
+      const actualShowStdIn = showStdIn !== undefined ? showStdIn : shellState.showStdIn;
+      if (actualShowStdIn) {
+        process.stdout.write(stdin);
+      }
+
+      try {
+        shellState.process.stdin?.write(stdin);
+      } catch (error) {
+        logger.error(`Error sending input: ${errorToString(error)}`);
+        return buildContentResponse({
+          stdout: '',
+          stderr: '',
+          status: mapStatus(shellState.status),
+          error: `Failed to send input: ${errorToString(error)}`,
+          ...(shellState.exitCode && { exitCode: shellState.exitCode }),
+        });
+      }
     }
+
+    // Get the current output
+    const stdout = shellState.stdout || '';
+    const stderr = shellState.stderr || '';
+
+    // Clear the output buffers
+    shellState.stdout = '';
+    shellState.stderr = '';
+
+    // Return the current state
+    return buildContentResponse({
+      stdout,
+      stderr,
+      status: mapStatus(shellState.status),
+      ...(shellState.exitCode && { exitCode: shellState.exitCode }),
+    });
+  } catch (error) {
+    logger.error(`Error in shellMessage: ${errorToString(error)}`);
+    
+    return buildContentResponse({
+      error: errorToString(error),
+    });
   }
-
-  // Wait a short time for any new output or signals to be processed
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  // Get the latest status
-  const updatedShell = shellTracker.getShellById(instanceId);
-  if (!updatedShell) {
-    throw new Error(`Shell process with ID ${instanceId} not found after operation`);
-  }
-
-  // Return the current state
-  return {
-    success: true,
-    status: updatedShell.status,
-    stdout: processState.stdout.join('').trim(),
-    stderr: processState.stderr.join('').trim(),
-    exitCode: processState.state.exitCode,
-    message: `Shell process ${instanceId} status: ${updatedShell.status}`,
-    ...(updatedShell.metadata.error && { error: updatedShell.metadata.error }),
-  };
 }

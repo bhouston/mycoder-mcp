@@ -47,7 +47,7 @@ const buildContentResponse = (result: ReturnType | { error: string }): ContentRe
         text: JSON.stringify(result),
       },
     ],
-    ...('error' in result && { isError: true }),
+    ...(('error' in result) && { isError: true }),
   };
 };
 
@@ -132,13 +132,13 @@ export const agentStartExecute = async (parameters: Parameters): Promise<Content
     });
   } catch (error) {
     return buildContentResponse({
-      error: error instanceof Error ? error.message : `Unknown error occurred: ${String(error)}`,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
 };
 
 // For backward compatibility
 export const agentStartTool = {
-  schema: parameterSchema,
+  schema: agentStartParameters,
   handler: agentStartExecute,
 };

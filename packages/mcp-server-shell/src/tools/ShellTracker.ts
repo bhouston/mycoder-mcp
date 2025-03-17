@@ -19,7 +19,7 @@ export type ProcessState = {
   state: {
     completed: boolean;
     signaled: boolean;
-    exitCode: number | null;
+    exitCode: number | undefined;
   };
   showStdIn: boolean;
   showStdout: boolean;
@@ -31,9 +31,17 @@ export interface ShellProcess {
   status: ShellStatus;
   startTime: Date;
   endTime?: Date;
+  command: string;
+  description: string;
+  exitCode?: number;
+  showStdIn: boolean;
+  showStdout: boolean;
+  stdout: string;
+  stderr: string;
+  process: ChildProcess;
   metadata: {
     command: string;
-    exitCode?: number | null;
+    exitCode?: number;
     signaled?: boolean;
     error?: string;
     [key: string]: any; // Additional shell-specific information
@@ -66,6 +74,13 @@ export class ShellTracker {
       id,
       status: ShellStatus.RUNNING,
       startTime: new Date(),
+      command,
+      description: command,
+      showStdIn: false,
+      showStdout: false,
+      stdout: '',
+      stderr: '',
+      process: {} as ChildProcess, // This will be set later
       metadata: {
         command,
       },
@@ -160,9 +175,7 @@ export class ShellTracker {
    */
   public async cleanupAllShells(): Promise<void> {
     const runningShells = this.getShells(ShellStatus.RUNNING);
-    const cleanupPromises = runningShells.map((shell) =>
-      this.cleanupShellProcess(shell.id),
-    );
+    const cleanupPromises = runningShells.map((shell) => this.cleanupShellProcess(shell.id));
     await Promise.all(cleanupPromises);
   }
 }

@@ -2,9 +2,8 @@
 import { defineCommand, runMain } from 'citty';
 import consola from 'consola';
 
-import { loadMyCoderConfig } from './config';
-import { interactiveCommand } from './commands/interactive';
-import { defaultCommand } from './commands/default';
+import { defaultCommand } from './commands/default.js';
+import { interactiveCommand } from './commands/interactive.js';
 
 // Define the main command
 const main = defineCommand({
