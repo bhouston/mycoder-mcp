@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { AgentStatus } from '../lib/AgentTracker';
-import { agentStates, agentTracker } from '../lib/agentState';
+import { agentStates, agentTracker } from '../lib/agentState.js';
+import { AgentStatus } from '../lib/AgentTracker.js';
 
 // Define the parameter schema for the agentMessage tool
 const parameterSchema = z.object({
@@ -10,29 +10,16 @@ const parameterSchema = z.object({
     .string()
     .optional()
     .describe('Optional guidance or instructions to send to the agent'),
-  terminate: z
-    .boolean()
-    .optional()
-    .describe('Whether to terminate the agent (default: false)'),
-  description: z
-    .string()
-    .describe('The reason for this agent interaction (max 80 chars)'),
+  terminate: z.boolean().optional().describe('Whether to terminate the agent (default: false)'),
+  description: z.string().describe('The reason for this agent interaction (max 80 chars)'),
 });
 
 // Define the return schema for the agentMessage tool
 const returnSchema = z.object({
   output: z.string().describe('The current output from the agent'),
-  completed: z
-    .boolean()
-    .describe('Whether the agent has completed its task'),
-  error: z
-    .string()
-    .optional()
-    .describe('Error message if the agent encountered an error'),
-  terminated: z
-    .boolean()
-    .optional()
-    .describe('Whether the agent was terminated by this message'),
+  completed: z.boolean().describe('Whether the agent has completed its task'),
+  error: z.string().optional().describe('Error message if the agent encountered an error'),
+  terminated: z.boolean().optional().describe('Whether the agent was terminated by this message'),
 });
 
 // Export the agentMessage tool schema and handler
@@ -69,13 +56,9 @@ export const agentMessageTool = {
         agentState.completed = true;
 
         // Update agent tracker with terminated status
-        agentTracker.updateAgentStatus(
-          instanceId,
-          AgentStatus.TERMINATED,
-          {
-            metadata: { terminatedByUser: true },
-          }
-        );
+        agentTracker.updateAgentStatus(instanceId, AgentStatus.TERMINATED, {
+          metadata: { terminatedByUser: true },
+        });
 
         return {
           content: [

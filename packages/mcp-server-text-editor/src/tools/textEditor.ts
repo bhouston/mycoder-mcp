@@ -16,11 +16,7 @@ export const toolParameters = {
     .describe(
       'The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`, `undo_edit`.',
     ),
-  path: z
-    .string()
-    .describe(
-      'Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.',
-    ),
+  path: z.string().describe('Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.'),
   file_text: z
     .string()
     .optional()
@@ -51,9 +47,7 @@ export const toolParameters = {
     .describe(
       'Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.',
     ),
-  description: z
-    .string()
-    .describe('The reason you are using the text editor (max 80 chars)'),
+  description: z.string().describe('The reason you are using the text editor (max 80 chars)'),
 };
 
 // eslint-disable-next-line unused-imports/no-unused-vars
@@ -86,9 +80,7 @@ const buildContentResponse = (result: ReturnType): ContentResponse => {
   };
 };
 
-export const textEditorExecute = async (
-  parameters: Parameters,
-): Promise<ContentResponse> => {
+export const textEditorExecute = async (parameters: Parameters): Promise<ContentResponse> => {
   try {
     const result = await textEditorInternal(parameters);
     return buildContentResponse(result);
@@ -152,8 +144,7 @@ const textEditorInternal = async ({
         }
 
         // Add line numbers
-        const startLineNum =
-          view_range && view_range.length === 2 ? view_range[0] : 1;
+        const startLineNum = view_range && view_range.length === 2 ? view_range[0] : 1;
         const numberedContent = displayContent
           .split('\n')
           .map((line, i) => `${(startLineNum || 1) + i}: ${line}`)
@@ -205,17 +196,13 @@ const textEditorInternal = async ({
 
       return {
         success: true,
-        message: fileExists
-          ? `File overwritten: ${filePath}`
-          : `File created: ${filePath}`,
+        message: fileExists ? `File overwritten: ${filePath}` : `File created: ${filePath}`,
       };
     }
 
     case 'str_replace': {
       if (!old_str) {
-        throw new Error(
-          'old_str parameter is required for str_replace command',
-        );
+        throw new Error('old_str parameter is required for str_replace command');
       }
 
       // Ensure the file exists
@@ -232,9 +219,7 @@ const textEditorInternal = async ({
         throw new Error(`The specified old_str was not found in the file`);
       }
       if (occurrences > 1) {
-        throw new Error(
-          `Found ${occurrences} occurrences of old_str, expected exactly 1`,
-        );
+        throw new Error(`Found ${occurrences} occurrences of old_str, expected exactly 1`);
       }
 
       // Save current state for undo
@@ -273,9 +258,7 @@ const textEditorInternal = async ({
 
       // Validate line number
       if (insert_line < 0 || insert_line > lines.length) {
-        throw new Error(
-          `Invalid line number: ${insert_line}. File has ${lines.length} lines.`,
-        );
+        throw new Error(`Invalid line number: ${insert_line}. File has ${lines.length} lines.`);
       }
 
       // Save current state for undo
@@ -297,10 +280,7 @@ const textEditorInternal = async ({
 
     case 'undo_edit': {
       // Check if we have history for this file
-      if (
-        !fileStateHistory[filePath] ||
-        fileStateHistory[filePath].length === 0
-      ) {
+      if (!fileStateHistory[filePath] || fileStateHistory[filePath].length === 0) {
         throw new Error(`No edit history found for ${filePath}`);
       }
 

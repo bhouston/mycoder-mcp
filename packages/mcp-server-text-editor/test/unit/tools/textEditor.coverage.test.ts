@@ -86,11 +86,7 @@ describe('textEditor additional coverage tests', () => {
   it('should handle empty new_str in str_replace', async () => {
     // Create a file with unique content to replace
     const uniqueFilePath = path.join(testDir, 'unique-content.txt');
-    await fs.writeFile(
-      uniqueFilePath,
-      'This text has a unique_string to replace.',
-      'utf8',
-    );
+    await fs.writeFile(uniqueFilePath, 'This text has a unique_string to replace.', 'utf8');
 
     const result = await textEditorExecute({
       command: 'str_replace',
@@ -113,11 +109,7 @@ describe('textEditor additional coverage tests', () => {
   it('should initialize fileStateHistory for str_replace and allow undo', async () => {
     // Create a new file
     const newFilePath = path.join(testDir, 'new-str-replace.txt');
-    await fs.writeFile(
-      newFilePath,
-      'This is a test string to replace.',
-      'utf8',
-    );
+    await fs.writeFile(newFilePath, 'This is a test string to replace.', 'utf8');
 
     // Do a str_replace operation
     let result = await textEditorExecute({
@@ -358,11 +350,7 @@ describe('textEditor additional coverage tests', () => {
   it('should handle multiple occurrences of old_str', async () => {
     // Create a file with duplicate text
     const duplicateFilePath = path.join(testDir, 'duplicate.txt');
-    await fs.writeFile(
-      duplicateFilePath,
-      'This is a test. This is a test.',
-      'utf8',
-    );
+    await fs.writeFile(duplicateFilePath, 'This is a test. This is a test.', 'utf8');
 
     const result = await textEditorExecute({
       command: 'str_replace',

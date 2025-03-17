@@ -178,9 +178,7 @@ describe('shellStartTool', () => {
     );
 
     if (asyncResult.mode === 'async') {
-      const processState = shellTracker.processStates.get(
-        asyncResult.instanceId,
-      );
+      const processState = shellTracker.processStates.get(asyncResult.instanceId);
       expect(processState).toBeDefined();
       expect(processState?.showStdIn).toBe(true);
       expect(processState?.showStdout).toBe(true);

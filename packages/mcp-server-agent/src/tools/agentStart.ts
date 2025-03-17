@@ -1,24 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import { AgentStatus } from '../lib/AgentTracker';
-import { agentStates, agentTracker } from '../lib/agentState';
+import { agentStates, agentTracker } from '../lib/agentState.js';
+import { AgentStatus } from '../lib/AgentTracker.js';
 
 // Define the parameter schema for the agentStart tool
 const parameterSchema = z.object({
-  description: z
-    .string()
-    .describe("A brief description of the agent's purpose (max 80 chars)"),
-  goal: z
-    .string()
-    .describe('The main objective that the agent needs to achieve'),
-  projectContext: z
-    .string()
-    .describe('Context about the problem or environment'),
-  workingDirectory: z
-    .string()
-    .optional()
-    .describe('The directory where the agent should operate'),
+  description: z.string().describe("A brief description of the agent's purpose (max 80 chars)"),
+  goal: z.string().describe('The main objective that the agent needs to achieve'),
+  projectContext: z.string().describe('Context about the problem or environment'),
+  workingDirectory: z.string().optional().describe('The directory where the agent should operate'),
   relevantFilesDirectories: z
     .string()
     .optional()
@@ -36,13 +27,8 @@ export const agentStartTool = {
   schema: parameterSchema,
   handler: async (params: z.infer<typeof parameterSchema>) => {
     // Validate parameters
-    const {
-      description,
-      goal,
-      projectContext,
-      workingDirectory,
-      relevantFilesDirectories,
-    } = params;
+    const { description, goal, projectContext, workingDirectory, relevantFilesDirectories } =
+      params;
 
     // Create an instance ID
     const instanceId = uuidv4();
@@ -56,9 +42,7 @@ export const agentStartTool = {
       `Goal: ${goal}`,
       `Project Context: ${projectContext}`,
       workingDirectory ? `Working Directory: ${workingDirectory}` : '',
-      relevantFilesDirectories
-        ? `Relevant Files:\\n  ${relevantFilesDirectories}`
-        : '',
+      relevantFilesDirectories ? `Relevant Files:\\n  ${relevantFilesDirectories}` : '',
     ]
       .filter(Boolean)
       .join('\\n');
@@ -93,13 +77,9 @@ export const agentStartTool = {
             state.output = 'Task completed successfully';
 
             // Update agent tracker with completed status
-            agentTracker.updateAgentStatus(
-              instanceId,
-              AgentStatus.COMPLETED,
-              {
-                result: 'Task completed successfully',
-              }
-            );
+            agentTracker.updateAgentStatus(instanceId, AgentStatus.COMPLETED, {
+              result: 'Task completed successfully',
+            });
           }
         }, 5000); // Simulate 5 seconds of work
       } catch (error) {
@@ -110,13 +90,9 @@ export const agentStartTool = {
           state.error = error instanceof Error ? error.message : String(error);
 
           // Update agent tracker with error status
-          agentTracker.updateAgentStatus(
-            instanceId,
-            AgentStatus.ERROR,
-            {
-              error: error instanceof Error ? error.message : String(error),
-            }
-          );
+          agentTracker.updateAgentStatus(instanceId, AgentStatus.ERROR, {
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
     });

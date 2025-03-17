@@ -1,7 +1,7 @@
 import { defineCommand } from 'citty';
 import consola from 'consola';
 
-import { loadMyCoderConfig } from '../config';
+import { loadMyCoderConfig } from '../config.js';
 
 // Define the interactive command
 export const interactiveCommand = defineCommand({
@@ -14,10 +14,10 @@ export const interactiveCommand = defineCommand({
     try {
       const config = await loadMyCoderConfig();
       consola.info('Starting MyCoder-MCP in interactive mode...');
-      
+
       // TODO: Initialize agent MCP server
       // TODO: Start the agent with a prompt asking for user input
-      
+
       consola.success('Interactive mode started');
       return 0;
     } catch (error) {

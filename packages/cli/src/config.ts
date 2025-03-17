@@ -27,7 +27,7 @@ const McpConfigSchema = z.object({
 export const ConfigSchema = z.object({
   // MCP configuration
   mcp: McpConfigSchema.optional(),
-  
+
   // Logging configuration
   logging: z
     .object({
@@ -59,7 +59,7 @@ export async function loadMyCoderConfig(): Promise<MyCoderConfig> {
     name: 'mycoder',
     defaults: defaultConfig,
     cwd: process.cwd(),
-    overrides: {},
+    overrides: { mcp: { servers: [], defaultResources: [] }, logging: { level: 'info' } },
   });
 
   // Merge the loaded config with the default config

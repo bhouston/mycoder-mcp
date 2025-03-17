@@ -53,17 +53,12 @@ export class MCPClient {
       // List available tools
       console.log('MCP Client: Requesting list of available tools');
       const toolsResult = await this.mcp.listTools();
-      console.log(
-        `MCP Client: Received ${toolsResult.tools.length} tools from server`,
-      );
+      console.log(`MCP Client: Received ${toolsResult.tools.length} tools from server`);
 
       this.tools = toolsResult.tools;
 
       // Log the names of available tools
-      console.log(
-        'MCP Client: Available tools:',
-        this.tools.map((t) => t.name).join(', '),
-      );
+      console.log('MCP Client: Available tools:', this.tools.map((t) => t.name).join(', '));
 
       return this.tools;
     } catch (e) {
@@ -100,10 +95,7 @@ export class MCPClient {
    * @param parameters Parameters to pass to the tool
    * @returns Result from the tool
    */
-  async callTool(
-    toolName: string,
-    parameters: Record<string, any>,
-  ): Promise<any> {
+  async callTool(toolName: string, parameters: Record<string, any>): Promise<any> {
     if (!this.transport) {
       throw new Error('Not connected to server');
     }
@@ -118,10 +110,7 @@ export class MCPClient {
       console.log(`MCP Client: Received response from tool '${toolName}'`);
       return result;
     } catch (error) {
-      console.error(
-        `MCP Client ERROR: Failed to call tool '${toolName}':`,
-        error,
-      );
+      console.error(`MCP Client ERROR: Failed to call tool '${toolName}':`, error);
       throw error;
     }
   }

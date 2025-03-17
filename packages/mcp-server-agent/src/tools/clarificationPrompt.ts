@@ -37,7 +37,7 @@ export const clarificationPromptTool = {
 
     try {
       const response = await promptUser(prompt);
-      
+
       logger.debug(`Received user response: ${response}`);
 
       return {
@@ -50,7 +50,7 @@ export const clarificationPromptTool = {
       };
     } catch (error) {
       logger.error('Error prompting user:', error);
-      
+
       return {
         content: [
           {

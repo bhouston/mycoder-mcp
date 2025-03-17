@@ -14,9 +14,9 @@ export default tseslint.config(
       sourceType: 'module',
     },
     plugins: {
-      'prettier': eslintPluginPrettier,
-      'import': eslintPluginImport,
-      'promise': eslintPluginPromise,
+      prettier: eslintPluginPrettier,
+      import: eslintPluginImport,
+      promise: eslintPluginPromise,
       'unused-imports': eslintPluginUnusedImports,
     },
     rules: {
@@ -27,10 +27,10 @@ export default tseslint.config(
       'import/order': [
         'error',
         {
-          'groups': ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
           'newlines-between': 'always',
-          'alphabetize': { 'order': 'asc', 'caseInsensitive': true }
-        }
+          alphabetize: { order: 'asc', caseInsensitive: true },
+        },
       ],
       'promise/always-return': 'error',
       'promise/no-return-wrap': 'error',
@@ -45,5 +45,5 @@ export default tseslint.config(
   },
   {
     ignores: ['node_modules', 'dist', 'coverage'],
-  }
+  },
 );

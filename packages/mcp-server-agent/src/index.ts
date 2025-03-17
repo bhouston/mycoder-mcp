@@ -1,12 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import consola from 'consola';
 
-import { agentDoneTool } from './tools/agentDone';
-import { agentMessageTool } from './tools/agentMessage';
-import { agentStartTool } from './tools/agentStart';
-import { clarificationPromptTool } from './tools/clarificationPrompt';
-import { listAgentsTool } from './tools/listAgents';
-import { agentTracker } from './lib/agentState';
+import { agentTracker } from './lib/agentState.js';
+import { agentDoneTool } from './tools/agentDone.js';
+import { agentMessageTool } from './tools/agentMessage.js';
+import { agentStartTool } from './tools/agentStart.js';
+import { clarificationPromptTool } from './tools/clarificationPrompt.js';
+import { listAgentsTool } from './tools/listAgents.js';
 
 /**
  * Create an Agent MCP server instance
@@ -32,11 +32,11 @@ export function createAgentMcpServer() {
   return server;
 }
 
-export { 
-  agentStartTool, 
-  agentMessageTool, 
-  agentDoneTool, 
+export {
+  agentStartTool,
+  agentMessageTool,
+  agentDoneTool,
   clarificationPromptTool,
   listAgentsTool,
-  agentTracker 
+  agentTracker,
 };

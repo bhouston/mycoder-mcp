@@ -160,9 +160,7 @@ export class ShellTracker {
    */
   public async cleanupAllShells(): Promise<void> {
     const runningShells = this.getShells(ShellStatus.RUNNING);
-    const cleanupPromises = runningShells.map((shell) =>
-      this.cleanupShellProcess(shell.id),
-    );
+    const cleanupPromises = runningShells.map((shell) => this.cleanupShellProcess(shell.id));
     await Promise.all(cleanupPromises);
   }
 }

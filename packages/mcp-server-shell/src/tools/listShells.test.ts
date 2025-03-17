@@ -74,10 +74,7 @@ describe('listShellsTool', () => {
   });
 
   it('should filter shells by status', async () => {
-    const result = await listShellsTool.execute(
-      { status: 'running' },
-      toolContext,
-    );
+    const result = await listShellsTool.execute({ status: 'running' }, toolContext);
 
     expect(result.shells.length).toBe(1);
     expect(result.count).toBe(1);
@@ -100,10 +97,7 @@ describe('listShellsTool', () => {
   });
 
   it('should combine status filter with verbose option', async () => {
-    const result = await listShellsTool.execute(
-      { status: 'error', verbose: true },
-      toolContext,
-    );
+    const result = await listShellsTool.execute({ status: 'error', verbose: true }, toolContext);
 
     expect(result.shells.length).toBe(1);
     expect(result.shells.length).toBe(1);

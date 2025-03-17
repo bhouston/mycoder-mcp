@@ -11,9 +11,7 @@ import { shellTracker } from './ShellTracker.js';
 const toolContext: ToolContext = getMockToolContext();
 
 // Helper function to get instanceId from shellStart result
-const getInstanceId = (
-  result: Awaited<ReturnType<typeof shellStartTool.execute>>,
-) => {
+const getInstanceId = (result: Awaited<ReturnType<typeof shellStartTool.execute>>) => {
   if (result.mode === 'async') {
     return result.instanceId;
   }

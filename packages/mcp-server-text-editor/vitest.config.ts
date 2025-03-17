@@ -9,5 +9,5 @@ export default mergeConfig(
         exclude: ['**/node_modules/**', '**/dist/**', '**/test/**', '*.config.*'],
       },
     },
-  })
+  }),
 );

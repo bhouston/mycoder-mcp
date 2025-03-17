@@ -1,6 +1,7 @@
 # MyCoder-MCP
 
 MyCoder-MCP is a Model Context Protocol (MCP) host that runs on the command line. It provides a CLI that can operate in two modes:
+
 1. Interactive mode - Ask the user what they'd like to do
 2. File execution mode - Execute a file containing the user's wishes
 

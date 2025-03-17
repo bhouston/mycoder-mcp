@@ -29,13 +29,7 @@ export async function copyFixtureToTestDir(
   testDir: string,
   newName?: string,
 ): Promise<string> {
-  const fixturePath = path.join(
-    process.cwd(),
-    'test',
-    'fixtures',
-    'sample-files',
-    fixtureName,
-  );
+  const fixturePath = path.join(process.cwd(), 'test', 'fixtures', 'sample-files', fixtureName);
   const destName = newName || fixtureName;
   const destPath = path.join(testDir, destName);
 

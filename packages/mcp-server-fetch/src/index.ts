@@ -1,8 +1,9 @@
+#!/usr/bin/env node
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 import { getPackageJson } from './lib/getPackageInfo.js';
-import { textEditorExecute, toolParameters } from './tools/textEditor.js';
+import { parameterSchema, fetchExecute, logParameters, logReturns } from './tools/fetch.js';
 
 // Create server instance with package information
 const packageJson = getPackageJson();
@@ -11,11 +12,12 @@ const server = new McpServer({
   version: packageJson.version!,
 });
 
+// Register the fetch tool
 server.tool(
-  'text_editor',
-  "View, create, and edit files with persistent state across command calls.  This tool is identical with Claude's built in text editor tool called text_editor_20241022",
-  toolParameters,
-  textEditorExecute,
+  'fetch',
+  'Executes HTTP requests using native Node.js fetch API, for using APIs, not for browsing the web.',
+  parameterSchema,
+  fetchExecute,
 );
 
 async function main() {
